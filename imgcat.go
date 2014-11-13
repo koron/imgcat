@@ -21,10 +21,10 @@ const (
 
 type Args struct {
 	X, Y, W, H int
-	H_TILE_NUM int
 	Inputs     []string
 	Output     string
 	Layout     Layout
+	Column     int
 	Help       bool
 }
 
@@ -58,7 +58,7 @@ func flag2args() *Args {
 	flag.IntVar(&a.W, "width", -1, "width (must)")
 	flag.IntVar(&a.H, "height", -1, "height (must)")
 	flag.IntVar(&layout, "layout", 0, "layout, horz:0 vert:1 tile:2")
-	flag.IntVar(&a.H_TILE_NUM, "h_tile_num", -1, "number of horizon tile (must if and only if layout=Tiling")
+	flag.IntVar(&a.Column, "column", 2, "num of columns for Tiling layout (default:2)")
 	flag.StringVar(&a.Output, "output", "", "output filename (must)")
 	flag.BoolVar(&a.Help, "h", false, "show help")
 	flag.Parse()
@@ -77,8 +77,8 @@ func args2drawdata(a *Args) []DrawData {
 		case Horizontal:
 			x, y = i*a.W, 0
 		case Tiling:
-			x = (i % a.H_TILE_NUM) * a.W
-			y = (i / a.H_TILE_NUM) * a.H
+			x = (i % a.Column) * a.W
+			y = (i / a.Column) * a.H
 		}
 		dd = append(dd, DrawData{
 			File:     s,
@@ -105,12 +105,12 @@ func size(a *Args) image.Rectangle {
 		w = a.W * len(a.Inputs)
 		h = a.H
 	case Tiling:
-		if len(a.Inputs) < a.H_TILE_NUM {
+		if len(a.Inputs) < a.Column {
 			w = a.W
 		} else {
-			w = a.W * a.H_TILE_NUM
+			w = a.W * a.Column
 		}
-		h = a.H * int(math.Ceil(float64(len(a.Inputs))/float64(a.H_TILE_NUM)))
+		h = a.H * int(math.Ceil(float64(len(a.Inputs))/float64(a.Column)))
 	}
 	return image.Rect(0, 0, w, h)
 }
@@ -134,8 +134,8 @@ func main() {
 	} else if args.W < 0 || args.H < 0 {
 		fmt.Fprintf(os.Stderr, "required '-width' and '-width'\n\n")
 		usage()
-	} else if args.Layout == 2 && args.H_TILE_NUM < 0 {
-		fmt.Fprintf(os.Stderr, "required '-h_tile_num' when you chose tile layout.\n\n")
+	} else if args.Layout == Tiling && args.Column < 2 {
+		fmt.Fprintf(os.Stderr, "'-column' must be greater than 2\n\n")
 		usage()
 	}
 
