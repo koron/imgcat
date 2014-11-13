@@ -1,0 +1,21 @@
+# imgcat - Image concatenate
+
+To build:
+
+```
+$ go get github.com/koron/imgcat
+
+or
+
+$ go build .
+```
+
+To run:
+
+```
+$ imgcat -output out.png -x 390 -y 152 -width 360 -height 280 kancolle-*.png
+```
+
+If you had prepared snapshots of KanColle, you would get this like image.
+
+![](sample01.png)
