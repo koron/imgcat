@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-        "math"
 	"image"
 	"image/draw"
 	"image/png"
 	"log"
+	"math"
 	"os"
 )
 
@@ -110,7 +110,7 @@ func size(a *Args) image.Rectangle {
 		} else {
 			w = a.W * a.H_TILE_NUM
 		}
-		h = a.H * int(math.Ceil(float64(len(a.Inputs)) / float64(a.H_TILE_NUM)))
+		h = a.H * int(math.Ceil(float64(len(a.Inputs))/float64(a.H_TILE_NUM)))
 	}
 	return image.Rect(0, 0, w, h)
 }
