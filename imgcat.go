@@ -4,10 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"image"
+	"image/color"
 	"image/draw"
 	"image/png"
 	"log"
-	"math"
 	"os"
 )
 
@@ -44,7 +44,7 @@ func (d DrawData) Draw(dst draw.Image) error {
 	if err != nil {
 		return err
 	}
-	draw.Draw(dst, d.DstRect, src, d.SrcPoint, draw.Over)
+	draw.Draw(dst, d.DstRect, src, d.SrcPoint, draw.Src)
 	return nil
 }
 
@@ -67,8 +67,9 @@ func flag2args() *Args {
 	return &a
 }
 
-func args2drawdata(a *Args) []DrawData {
+func args2drawdata(a *Args) ([]DrawData, image.Rectangle) {
 	dd := make([]DrawData, 0, len(a.Inputs))
+	w, h := 0, 0
 	for i, s := range a.Inputs {
 		var x, y int
 		switch a.Layout {
@@ -80,39 +81,26 @@ func args2drawdata(a *Args) []DrawData {
 			x = (i % a.Column) * a.W
 			y = (i / a.Column) * a.H
 		}
+		r, b := x+a.W, y+a.H
 		dd = append(dd, DrawData{
 			File:     s,
 			SrcPoint: image.Pt(a.X, a.Y),
-			DstRect:  image.Rect(x, y, x+a.W, y+a.H),
+			DstRect:  image.Rect(x, y, r, b),
 		})
+		if r > w {
+			w = r
+		}
+		if b > h {
+			h = b
+		}
 	}
-	return dd
+	return dd, image.Rect(0, 0, w, h)
 }
 
 func usage() {
 	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
 	flag.PrintDefaults()
 	os.Exit(1)
-}
-
-func size(a *Args) image.Rectangle {
-	var w, h int
-	switch a.Layout {
-	case Vertical:
-		w = a.W
-		h = a.H * len(a.Inputs)
-	case Horizontal:
-		w = a.W * len(a.Inputs)
-		h = a.H
-	case Tiling:
-		if len(a.Inputs) < a.Column {
-			w = a.W
-		} else {
-			w = a.W * a.Column
-		}
-		h = a.H * int(math.Ceil(float64(len(a.Inputs))/float64(a.Column)))
-	}
-	return image.Rect(0, 0, w, h)
 }
 
 func writeFile(file string, m image.Image) error {
@@ -139,8 +127,10 @@ func main() {
 		usage()
 	}
 
-	dst := image.NewRGBA(size(args))
-	for _, d := range args2drawdata(args) {
+	dd, sz := args2drawdata(args)
+	dst := image.NewRGBA(sz)
+	draw.Draw(dst, sz, &image.Uniform{color.White}, image.ZP, draw.Src)
+	for _, d := range dd {
 		err := d.Draw(dst)
 		if err != nil {
 			log.Fatalf("failed to draw: %s\n", err)
