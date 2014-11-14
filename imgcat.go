@@ -24,7 +24,7 @@ type Args struct {
 	Inputs     []string
 	Output     string
 	Layout     Layout
-	Column     int
+	Wrap       int
 	Help       bool
 }
 
@@ -57,8 +57,8 @@ func flag2args() *Args {
 	flag.IntVar(&a.Y, "y", 0, "Y position, default means top edge")
 	flag.IntVar(&a.W, "width", -1, "width (must)")
 	flag.IntVar(&a.H, "height", -1, "height (must)")
-	flag.IntVar(&layout, "layout", 0, "layout, horz:0 vert:1 tile:2")
-	flag.IntVar(&a.Column, "column", 2, "num of columns for Tiling layout (default:2)")
+	flag.IntVar(&layout, "layout", 0, "layout, horz:0(default) vert:1")
+	flag.IntVar(&a.Wrap, "wrap", 0, "num of images to wrap (default 0:nowrap)")
 	flag.StringVar(&a.Output, "output", "", "output filename (must)")
 	flag.BoolVar(&a.Help, "h", false, "show help")
 	flag.Parse()
@@ -74,12 +74,19 @@ func args2drawdata(a *Args) ([]DrawData, image.Rectangle) {
 		var x, y int
 		switch a.Layout {
 		case Vertical:
-			x, y = 0, i*a.H
+			if a.Wrap == 0 {
+				x, y = 0, i*a.H
+			} else {
+				x = (i / a.Wrap) * a.W
+				y = (i % a.Wrap) * a.H
+			}
 		case Horizontal:
-			x, y = i*a.W, 0
-		case Tiling:
-			x = (i % a.Column) * a.W
-			y = (i / a.Column) * a.H
+			if a.Wrap == 0 {
+				x, y = i*a.W, 0
+			} else {
+				x = (i % a.Wrap) * a.W
+				y = (i / a.Wrap) * a.H
+			}
 		}
 		r, b := x+a.W, y+a.H
 		dd = append(dd, DrawData{
@@ -122,8 +129,8 @@ func main() {
 	} else if args.W < 0 || args.H < 0 {
 		fmt.Fprintf(os.Stderr, "required '-width' and '-width'\n\n")
 		usage()
-	} else if args.Layout == Tiling && args.Column < 2 {
-		fmt.Fprintf(os.Stderr, "'-column' must be greater than 2\n\n")
+	} else if args.Wrap < 0 {
+		fmt.Fprintf(os.Stderr, "'-wrap' must be 0 or greater\n\n")
 		usage()
 	}
 
