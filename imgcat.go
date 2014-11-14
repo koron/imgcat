@@ -25,6 +25,7 @@ type Args struct {
 	Layout     Layout
 	Wrap       int
 	Gap        int
+	Margin     int
 	Help       bool
 }
 
@@ -60,6 +61,7 @@ func flag2args() *Args {
 	flag.IntVar(&layout, "layout", 0, "layout, horz:0(default) vert:1")
 	flag.IntVar(&a.Wrap, "wrap", 0, "num of images to wrap (default 0:nowrap)")
 	flag.IntVar(&a.Gap, "gap", 0, "gap width between images (default 0)")
+	flag.IntVar(&a.Margin, "margin", 0, "margin width around images (default 0)")
 	flag.StringVar(&a.Output, "output", "", "output filename (must)")
 	flag.BoolVar(&a.Help, "h", false, "show help")
 	flag.Parse()
@@ -70,6 +72,7 @@ func flag2args() *Args {
 
 func args2drawdata(a *Args) ([]DrawData, image.Rectangle) {
 	dd := make([]DrawData, 0, len(a.Inputs))
+	m := a.Margin
 	unit_w, unit_h := a.W+a.Gap, a.H+a.Gap
 	max_w, max_h := 0, 0
 	for i, s := range a.Inputs {
@@ -77,30 +80,31 @@ func args2drawdata(a *Args) ([]DrawData, image.Rectangle) {
 		switch a.Layout {
 		case Vertical:
 			if a.Wrap == 0 {
-				x, y = 0, i*unit_h
+				x, y = m, i*unit_h+m
 			} else {
-				x = (i / a.Wrap) * unit_w
-				y = (i % a.Wrap) * unit_h
+				x = (i/a.Wrap)*unit_w + m
+				y = (i%a.Wrap)*unit_h + m
 			}
 		case Horizontal:
 			if a.Wrap == 0 {
-				x, y = i*unit_w, 0
+				x, y = i*unit_w+m, m
 			} else {
-				x = (i % a.Wrap) * unit_w
-				y = (i / a.Wrap) * unit_h
+				x = (i%a.Wrap)*unit_w + m
+				y = (i/a.Wrap)*unit_h + m
 			}
 		}
-		r, b := x+a.W, y+a.H
+		right, bottom := x+a.W, y+a.H
 		dd = append(dd, DrawData{
 			File:     s,
 			SrcPoint: image.Pt(a.X, a.Y),
-			DstRect:  image.Rect(x, y, r, b),
+			DstRect:  image.Rect(x, y, right, bottom),
 		})
-		if r > max_w {
-			max_w = r
+		most_right, most_bottom := right + m, bottom + m
+		if most_right > max_w {
+			max_w = most_right
 		}
-		if b > max_h {
-			max_h = b
+		if most_bottom > max_h {
+			max_h = most_bottom
 		}
 	}
 	return dd, image.Rect(0, 0, max_w, max_h)
@@ -136,6 +140,9 @@ func main() {
 		usage()
 	} else if args.Gap < 0 {
 		fmt.Fprintf(os.Stderr, "'-gap' must be 0 or greater\n\n")
+		usage()
+	} else if args.Margin < 0 {
+		fmt.Fprintf(os.Stderr, "'-margin' must be 0 or greater\n\n")
 		usage()
 	}
 
