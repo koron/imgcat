@@ -24,6 +24,7 @@ type Args struct {
 	Output     string
 	Layout     Layout
 	Wrap       int
+	Gap        int
 	Help       bool
 }
 
@@ -58,6 +59,7 @@ func flag2args() *Args {
 	flag.IntVar(&a.H, "height", -1, "height (must)")
 	flag.IntVar(&layout, "layout", 0, "layout, horz:0(default) vert:1")
 	flag.IntVar(&a.Wrap, "wrap", 0, "num of images to wrap (default 0:nowrap)")
+	flag.IntVar(&a.Gap, "gap", 0, "gap width between images (default 0)")
 	flag.StringVar(&a.Output, "output", "", "output filename (must)")
 	flag.BoolVar(&a.Help, "h", false, "show help")
 	flag.Parse()
@@ -68,23 +70,24 @@ func flag2args() *Args {
 
 func args2drawdata(a *Args) ([]DrawData, image.Rectangle) {
 	dd := make([]DrawData, 0, len(a.Inputs))
-	w, h := 0, 0
+	unit_w, unit_h := a.W+a.Gap, a.H+a.Gap
+	max_w, max_h := 0, 0
 	for i, s := range a.Inputs {
 		var x, y int
 		switch a.Layout {
 		case Vertical:
 			if a.Wrap == 0 {
-				x, y = 0, i*a.H
+				x, y = 0, i*unit_h
 			} else {
-				x = (i / a.Wrap) * a.W
-				y = (i % a.Wrap) * a.H
+				x = (i / a.Wrap) * unit_w
+				y = (i % a.Wrap) * unit_h
 			}
 		case Horizontal:
 			if a.Wrap == 0 {
-				x, y = i*a.W, 0
+				x, y = i*unit_w, 0
 			} else {
-				x = (i % a.Wrap) * a.W
-				y = (i / a.Wrap) * a.H
+				x = (i % a.Wrap) * unit_w
+				y = (i / a.Wrap) * unit_h
 			}
 		}
 		r, b := x+a.W, y+a.H
@@ -93,14 +96,14 @@ func args2drawdata(a *Args) ([]DrawData, image.Rectangle) {
 			SrcPoint: image.Pt(a.X, a.Y),
 			DstRect:  image.Rect(x, y, r, b),
 		})
-		if r > w {
-			w = r
+		if r > max_w {
+			max_w = r
 		}
-		if b > h {
-			h = b
+		if b > max_h {
+			max_h = b
 		}
 	}
-	return dd, image.Rect(0, 0, w, h)
+	return dd, image.Rect(0, 0, max_w, max_h)
 }
 
 func usage() {
@@ -130,6 +133,9 @@ func main() {
 		usage()
 	} else if args.Wrap < 0 {
 		fmt.Fprintf(os.Stderr, "'-wrap' must be 0 or greater\n\n")
+		usage()
+	} else if args.Gap < 0 {
+		fmt.Fprintf(os.Stderr, "'-gap' must be 0 or greater\n\n")
 		usage()
 	}
 
