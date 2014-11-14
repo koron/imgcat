@@ -16,7 +16,6 @@ type Layout int
 const (
 	Vertical Layout = iota
 	Horizontal
-	Tiling
 )
 
 type Args struct {
