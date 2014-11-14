@@ -70,48 +70,51 @@ func flag2args() *Args {
 	return &a
 }
 
-func args2drawdata(a *Args) ([]DrawData, image.Rectangle) {
-	dd := make([]DrawData, 0, len(a.Inputs))
-	m := a.Margin
-	unit_w, unit_h := a.W+a.Gap, a.H+a.Gap
-	max_w, max_h := 0, 0
-	for i, s := range a.Inputs {
-		var x, y int
-		switch a.Layout {
-		case Vertical:
-			if a.Wrap == 0 {
-				x, y = m, i*unit_h+m
-			} else {
-				x = (i/a.Wrap)*unit_w + m
-				y = (i%a.Wrap)*unit_h + m
-			}
-		case Horizontal:
-			if a.Wrap == 0 {
-				x, y = i*unit_w+m, m
-			} else {
-				x = (i%a.Wrap)*unit_w + m
-				y = (i/a.Wrap)*unit_h + m
-			}
+func calcPos(a *Args, i int) (nx, ny int) {
+	switch a.Layout {
+	case Vertical:
+		if a.Wrap == 0 {
+			ny = i
+		} else {
+			nx, ny = i/a.Wrap, i%a.Wrap
 		}
-		right, bottom := x+a.W, y+a.H
-		dd = append(dd, DrawData{
-			File:     s,
-			SrcPoint: image.Pt(a.X, a.Y),
-			DstRect:  image.Rect(x, y, right, bottom),
-		})
-		most_right, most_bottom := right + m, bottom + m
-		if most_right > max_w {
-			max_w = most_right
-		}
-		if most_bottom > max_h {
-			max_h = most_bottom
+	case Horizontal:
+		if a.Wrap == 0 {
+			nx = i
+		} else {
+			nx, ny = i%a.Wrap, i/a.Wrap
 		}
 	}
-	return dd, image.Rect(0, 0, max_w, max_h)
+	return
+}
+
+func calcDrawData(a *Args) ([]DrawData, image.Rectangle) {
+	dd := make([]DrawData, 0, len(a.Inputs))
+	m, w, h := a.Margin, a.W+a.Gap, a.H+a.Gap
+	max_x, max_y := 0, 0
+	for i, f := range a.Inputs {
+		nx, ny := calcPos(a, i)
+		x0, y0 := m+nx*w, m+ny*h
+		x1, y1 := x0+a.W, y0+a.H
+		x2, y2 := x1+m, y1+m
+		dd = append(dd, DrawData{
+			File:     f,
+			SrcPoint: image.Pt(a.X, a.Y),
+			DstRect:  image.Rect(x0, y0, x1, y1),
+		})
+		if x2 > max_x {
+			max_x = x2
+		}
+		if y2 > max_y {
+			max_y = y2
+		}
+	}
+	return dd, image.Rect(0, 0, max_x, max_y)
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "USAGE:  %s [OPTIONS] {IMAGE FILES}\n\nOPTIONS:\n",
+		os.Args[0])
 	flag.PrintDefaults()
 	os.Exit(1)
 }
@@ -146,7 +149,7 @@ func main() {
 		usage()
 	}
 
-	dd, sz := args2drawdata(args)
+	dd, sz := calcDrawData(args)
 	dst := image.NewRGBA(sz)
 	draw.Draw(dst, sz, &image.Uniform{color.White}, image.ZP, draw.Src)
 	for _, d := range dd {
