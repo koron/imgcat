@@ -126,7 +126,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "required '-output' arg\n\n")
 		usage()
 	} else if args.W < 0 || args.H < 0 {
-		fmt.Fprintf(os.Stderr, "required '-width' and '-width'\n\n")
+		fmt.Fprintf(os.Stderr, "required '-width' and '-height'\n\n")
 		usage()
 	} else if args.Wrap < 0 {
 		fmt.Fprintf(os.Stderr, "'-wrap' must be 0 or greater\n\n")
