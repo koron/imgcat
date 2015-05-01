@@ -1,15 +1,17 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
-	_ "image/jpeg"
+	"image/jpeg"
 	"image/png"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 type Layout int
@@ -121,12 +123,26 @@ func usage() {
 }
 
 func writeFile(file string, m image.Image) error {
+	var encode func(f *os.File) error
+	switch filepath.Ext(file) {
+	case ".jpeg":
+	case ".jpg":
+		encode = func(f *os.File) error {
+			return jpeg.Encode(f, m, &jpeg.Options{90})
+		}
+	case ".png":
+		encode = func(f *os.File) error {
+			return png.Encode(f, m)
+		}
+	default:
+		return errors.New("unknown ext: " + file)
+	}
 	f, err := os.Create(file)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return png.Encode(f, m)
+	return encode(f)
 }
 
 func main() {
