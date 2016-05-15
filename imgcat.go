@@ -128,7 +128,7 @@ func writeFile(file string, m image.Image) error {
 	case ".jpeg":
 	case ".jpg":
 		encode = func(f *os.File) error {
-			return jpeg.Encode(f, m, &jpeg.Options{90})
+			return jpeg.Encode(f, m, &jpeg.Options{Quality: 90})
 		}
 	case ".png":
 		encode = func(f *os.File) error {
