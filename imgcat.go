@@ -14,13 +14,18 @@ import (
 	"path/filepath"
 )
 
+// Layout represents layout direction.
 type Layout int
 
 const (
+	// Vertical is a vertical layout.
 	Vertical Layout = iota
+
+	// Horizontal is a horizontal layout.
 	Horizontal
 )
 
+// Args represents drawing parameters.
 type Args struct {
 	X, Y, W, H int
 	Inputs     []string
@@ -32,12 +37,14 @@ type Args struct {
 	Help       bool
 }
 
+// DrawData represents info of images to draw.
 type DrawData struct {
 	File     string
 	SrcPoint image.Point
 	DstRect  image.Rectangle
 }
 
+// Draw draws images to dst.
 func (d DrawData) Draw(dst draw.Image) error {
 	f, err := os.Open(d.File)
 	if err != nil {
@@ -94,7 +101,7 @@ func calcPos(a *Args, i int) (nx, ny int) {
 func calcDrawData(a *Args) ([]DrawData, image.Rectangle) {
 	dd := make([]DrawData, 0, len(a.Inputs))
 	m, w, h := a.Margin, a.W+a.Gap, a.H+a.Gap
-	max_x, max_y := 0, 0
+	maxX, maxY := 0, 0
 	for i, f := range a.Inputs {
 		nx, ny := calcPos(a, i)
 		x0, y0 := m+nx*w, m+ny*h
@@ -105,14 +112,14 @@ func calcDrawData(a *Args) ([]DrawData, image.Rectangle) {
 			SrcPoint: image.Pt(a.X, a.Y),
 			DstRect:  image.Rect(x0, y0, x1, y1),
 		})
-		if x2 > max_x {
-			max_x = x2
+		if x2 > maxX {
+			maxX = x2
 		}
-		if y2 > max_y {
-			max_y = y2
+		if y2 > maxY {
+			maxY = y2
 		}
 	}
-	return dd, image.Rect(0, 0, max_x, max_y)
+	return dd, image.Rect(0, 0, maxX, maxY)
 }
 
 func usage() {
